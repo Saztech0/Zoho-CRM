@@ -1,13 +1,13 @@
 # We are creating a deal record from based on the webhook response
-
+# Fetch the message_created from the webhook response because inside tht whole data is present
 string Message_Created_Conversation(map message_created)
 {
-// Get the record ID from the message
+#Get the ID from the message
 record_id = message_created.get("id");
-// Get the content and payload from the message
+# Get the content and payload from the message created
 content = message_created.get("content");
 payload = content.get("payload");
-// Extracting necessary fields from the payload
+# Extracting necessary fields from the payload
 video_id = ifnull(payload.getJSON("video_id"),"");
 parameters = ifnull(payload.getJSON("parameters"),Map());
 referred_by = parameters.getJSON("referred_by");
@@ -20,7 +20,7 @@ primary = ifnull(equipmentplacement.getJSON("primary"),Map());
 primary_mounting = ifnull(primary.getJSON("mounting"),"");
 primary_placement = ifnull(primary.getJSON("placement"),"");
 manufactured = ifnull(design.getJSON("manufactured"),"");
-// Extracting design details
+# Extracting aerialytic design details from webhook
 aerialyticdesign = ifnull(payload.getJSON("aerialyticDesign"),Map());
 designId = ifnull(aerialyticdesign.get("designId"),"");
 customerId = ifnull(aerialyticdesign.get("customerId"),"");
@@ -28,19 +28,18 @@ addressId = ifnull(aerialyticdesign.get("addressId"),"");
 propertyId = ifnull(aerialyticdesign.get("propertyId"),"");
 proposalId = ifnull(aerialyticdesign.get("proposalId"),"");
 utilityProfileId = ifnull(aerialyticdesign.get("utilityProfileId"),"");
-// Extracting account details
+# Extracting account details
 account = ifnull(payload.getJSON("account"),Map());
 user_id = ifnull(account.getJSON("user_id"),"");
 phone_number = ifnull(account.getJSON("phoneNumber"),"");
-// Getting conversation ID
+# Getting conversation ID
 conversation = ifnull(message_created.get("conversation"),"");
 timestamp = payload.getJSON("timestamp");
-// Extract suncheck details
+# Extract suncheck details
 suncheck = ifnull(payload.get("suncheck"),Map());
 back = ifnull(suncheck.get("back"),Map());
-//info "back" + back;
 front = ifnull(suncheck.get("front"),Map());
-// Extract  address details
+# Extract  address details
 address = ifnull(back.get("address"),Map());
 city = ifnull(address.get("city"),"");
 state = ifnull(address.get("state"),"");
@@ -48,7 +47,7 @@ street = ifnull(address.get("street"),"");
 zipCode = ifnull(address.get("zipCode"),"");
 project_full_address = street + ", " + city + ", " + state + ", " + zipCode;
 //info project_full_address;
-////////////////////Mailing address///////// 
+# Mailing address
 mailing_address = ifnull(back.get("mailAddress"),Map());
 //info "Stage 0" + mailing_address;
 if(mailing_address.isEmpty())
@@ -71,8 +70,8 @@ else if(mailing_address != "" || mailing_address != null)
 	info "Stage4" + mail_zipCode;
 	mailing_full_address = mail_street + " ," + mail_city + ", " + mail_state + " ," + mail_zipCode;
 }
-//////////////////Mailing address///////// 
-// Extract front details
+# Mailing address
+# Extract front details
 name = ifnull(front.getJSON("name"),"");
 get_name_prefix = name.getPrefix(" ");
 get_name_suffix = name.getSuffix(" ");
@@ -96,7 +95,7 @@ if(utility_provider_options.size() > 0)
 optional_map = Map();
 // answer_list = list();
 info conversation;
-// Search for existing deal using the conversation ID
+# Search for existing deal using the conversation ID
 search_records = zoho.crm.searchRecords("Deals","(Aerialytic_Conversation_Id:equals:" + conversation + ")",1,200,optional_map,"crm");
 info search_records;
 if(search_records.size() > 0)
@@ -135,7 +134,7 @@ if(search_records.size() > 0)
 		{
 			deal.put("Aerialytic_Property_Id",propertyId);
 		}
-		// Update timestamps based on the order of quiz completion
+		# Update timestamps based on the order of quiz completion
 		if(aerialytic_proposal_id == null || aerialytic_proposal_id == "")
 		{
 			deal.put("Aerialytic_Proposal_Id",proposalId);
@@ -209,15 +208,15 @@ if(search_records.size() > 0)
 }
 else
 {
-	// If no existing deal found, create a new deal
+	# If no existing deal found, create a new deal
 	deal_map = Map();
 	deal_map.put("Phone_Number",phone_number);
 	deal_map.put("Aerialytic_Conversation_Id",conversation);
-	// Project address mapping
+	# Project address mapping
 	deal_map.put("City_Project",city);
 	deal_map.put("Street_Project",street);
 	deal_map.put("Zip_Code_Project",zipCode);
-	/////////////// Mailing address /////////////////
+	# Mailing address Mapping In CRM Deal Record
 	deal_map.put("City_Mail",mail_city);
 	deal_map.put("Street_Mail",mail_street);
 	deal_map.put("Zip_Code_Mail",mail_zipCode);
@@ -233,7 +232,7 @@ else
 	{
 		deal_map.put("Referred_by",referred_by);
 	}
-	// Set the first quiz completion timestamp if applicable
+	# Set the first quiz completion timestamp if applicable
 	if(timestamp != null)
 	{
 		deal_map.put("First_Quiz_Knowledge_Completion_TimeStamp",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ss"));
@@ -241,10 +240,11 @@ else
 	deal_map.put("Deal_Created_Type","Automation");
 	deal_map.put("Blueprint_Stage","New");
 	deal_map.put("Utility_Company",utility_name);
-	// Create a new deal in Zoho CRM
+	# Create a new deal in Zoho CRM
 	create_deal = zoho.crm.createRecord("Deals",deal_map,{"trigger":{"workflow"}});
 }
-/////////////getQuiz4 answer for additional products///////////
+# Get the Quiz4 answer for additional products
+
 answers = ifnull(payload.getJSON("answers"),Map());
 info "*" + answers;
 answers_of_quiz = answers.toText();
@@ -400,9 +400,11 @@ if(answers_of_quiz.contains("quiz2"))
 	}
 	info "quiz2_list>>>>>>>" + quiz2_list;
 	deal = Map();
-	//////// Update the "Existing_Generation_Assets" field in the deal
+	# Update the "Existing_Generation_Assets" field in the deal record
 	deal.put("Existing_Generation_Assets",quiz2_list);
 	update_rec = zoho.crm.updateRecord("Deals",deal_id,deal,{"trigger":{"workflow"}});
 }
 return question5;
 }
+
+
